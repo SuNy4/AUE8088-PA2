@@ -248,6 +248,7 @@ class DetectionModel(BaseModel):
             m.stride = torch.tensor([s / x.shape[-2] for x in forward(torch.zeros(1, ch, s, s))])  # forward
             check_anchor_order(m)
             m.anchors /= m.stride.view(-1, 1, 1)
+            m.anchors = nn.Parameter(torch.tensor(m.anchors, dtype=torch.float32))
             self.stride = m.stride
             self._initialize_biases()  # only run once
 
@@ -448,7 +449,24 @@ def parse_model(d, ch):
         if i == 0:
             ch = []
         ch.append(c2)
+    #return CustomYOLOv5(layers)
     return nn.Sequential(*layers), sorted(save)
+    
+
+class CustomYOLOv5(torch.nn.Module):
+    def __init__(self, layers):
+        super(CustomYOLOv5, self).__init__()
+        self.layers = nn.Sequential(*layers)
+        
+    def forward(self, x, recurrent_target=None):
+        recurrent_target = []
+        # Sequential 모델의 각 레이어를 하나씩 실행
+        for i, layer in enumerate(self.layers):
+            x = layer(x)
+            if i == 17 or 20 or 23:
+                x = (x + recurrent_target)/2
+                recurrent_target.append(x)
+        return x, recurrent_target
 
 
 if __name__ == "__main__":
