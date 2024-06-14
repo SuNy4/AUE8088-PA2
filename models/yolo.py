@@ -248,7 +248,7 @@ class DetectionModel(BaseModel):
             m.stride = torch.tensor([s / x.shape[-2] for x in forward(torch.zeros(1, ch, s, s))])  # forward
             check_anchor_order(m)
             m.anchors /= m.stride.view(-1, 1, 1)
-            m.anchors = nn.Parameter(torch.tensor(m.anchors, dtype=torch.float32))
+            #m.anchors = nn.Parameter(torch.tensor(m.anchors, dtype=torch.float32))
             self.stride = m.stride
             self._initialize_biases()  # only run once
 
@@ -449,24 +449,35 @@ def parse_model(d, ch):
         if i == 0:
             ch = []
         ch.append(c2)
-    #return CustomYOLOv5(layers)
+    #return CustomYOLOv5(*layers), sorted(save)
+    # Below line is original code
     return nn.Sequential(*layers), sorted(save)
     
 
-class CustomYOLOv5(torch.nn.Module):
-    def __init__(self, layers):
-        super(CustomYOLOv5, self).__init__()
-        self.layers = nn.Sequential(*layers)
+# class CustomYOLOv5(torch.nn.Sequential):
+#     def __init__(self, *layers):
+#         super(CustomYOLOv5, self).__init__(*layers)
+#         self.recurrent = []
         
-    def forward(self, x, recurrent_target=None):
-        recurrent_target = []
-        # Sequential 모델의 각 레이어를 하나씩 실행
-        for i, layer in enumerate(self.layers):
-            x = layer(x)
-            if i == 17 or 20 or 23:
-                x = (x + recurrent_target)/2
-                recurrent_target.append(x)
-        return x, recurrent_target
+#     def forward(self, x):
+        
+#         for i, layer in enumerate(self.layers):
+#             x = layer(x)
+
+#             # layer number 17, 20, 23 will be target
+#             if i in[17, 20, 23]:
+
+#                 # Add recurrent only list is filled
+#                 if self.recurrent:
+#                     # average sum
+#                     x = (x + self.recurrent[0])/2
+
+#                 self.recurrent.append(x)
+
+#             # if recurrent target list is full(3), pop out first element 
+#             if len(self.recurrent) > 3:
+#                 self.recurrent.pop(0)
+#         return x
 
 
 if __name__ == "__main__":
