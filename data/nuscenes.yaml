@@ -7,7 +7,7 @@
 #     └── data ── nuscenes.yaml
 
 # Train/val/test sets as 1) dir: path/to/imgs, 2) file: path/to/imgs.txt, or 3) list: [path/to/imgs1, path/to/imgs2, ..]
-path: datasets/nuscenes
+path: /home/sungjin/data/datasets/nuscenes_det2d
 train: # train files info (relative to 'path')   images
   - train.txt
 val: # val files info (relative to 'path')  6019 images

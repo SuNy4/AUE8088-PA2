@@ -314,7 +314,7 @@ def train(hyp, opt, device, callbacks):
             if callbacks.stop_training:
                 return
             # end batch ------------------------------------------------------------------------------------------------
-
+            
         # Scheduler
         lr = [x["lr"] for x in optimizer.param_groups]  # for loggers
         scheduler.step()
@@ -460,7 +460,7 @@ def parse_opt(known=False):
 def main(opt, callbacks=Callbacks()):
     """Runs training or hyperparameter evolution with specified options and optional callbacks."""
     print_args(vars(opt))
-    check_git_status(repo="ircvlab/aue8088-pa2", branch="main")
+    check_git_status(repo="SuNy4/aue8088-pa2", branch="main")
     check_requirements(ROOT / "requirements.txt")
 
     opt.data, opt.cfg, opt.hyp, opt.weights, opt.project = (
