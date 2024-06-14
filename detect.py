@@ -68,9 +68,9 @@ from utils.torch_utils import select_device, smart_inference_mode
 
 @smart_inference_mode()
 def run(
-    weights=ROOT / "yolov5s.pt",  # model path or triton URL
+    weights=ROOT / "./runs/train/yolov5n14/weights/best.pt",  # model path or triton URL
     source=ROOT / "data/images",  # file/dir/URL/glob/screen/0(webcam)
-    data=ROOT / "data/coco128.yaml",  # dataset.yaml path
+    data=ROOT / "data/nuscenes.yaml",  # dataset.yaml path
     imgsz=(640, 640),  # inference size (height, width)
     conf_thres=0.25,  # confidence threshold
     iou_thres=0.45,  # NMS IOU threshold
@@ -90,7 +90,7 @@ def run(
     project=ROOT / "runs/detect",  # save results to project/name
     name="exp",  # save results to project/name
     exist_ok=False,  # existing project/name ok, do not increment
-    line_thickness=3,  # bounding box thickness (pixels)
+    line_thickness=0.5,  # bounding box thickness (pixels)
     hide_labels=False,  # hide labels
     hide_conf=False,  # hide confidences
     half=False,  # use FP16 half-precision inference
@@ -109,6 +109,9 @@ def run(
     # Directories
     save_dir = increment_path(Path(project) / name, exist_ok=exist_ok)  # increment run
     (save_dir / "labels" if save_txt else save_dir).mkdir(parents=True, exist_ok=True)  # make dir
+    
+    #
+    frames=[]
 
     # Load model
     device = select_device(device)
@@ -235,24 +238,35 @@ def run(
             # Save results (image with detections)
             if save_img:
                 if dataset.mode == "image":
-                    cv2.imwrite(save_path, im0)
-                else:  # 'video' or 'stream'
-                    if vid_path[i] != save_path:  # new video
-                        vid_path[i] = save_path
-                        if isinstance(vid_writer[i], cv2.VideoWriter):
-                            vid_writer[i].release()  # release previous video writer
-                        if vid_cap:  # video
-                            fps = vid_cap.get(cv2.CAP_PROP_FPS)
-                            w = int(vid_cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-                            h = int(vid_cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-                        else:  # stream
-                            fps, w, h = 30, im0.shape[1], im0.shape[0]
-                        save_path = str(Path(save_path).with_suffix(".mp4"))  # force *.mp4 suffix on results videos
-                        vid_writer[i] = cv2.VideoWriter(save_path, cv2.VideoWriter_fourcc(*"mp4v"), fps, (w, h))
-                    vid_writer[i].write(im0)
+                    frames.append(im0)
+                    #cv2.imwrite(save_path, im0)
 
+                # else:  # 'video' or 'stream'
+                #     if vid_path[i] != save_path:  # new video
+                #         vid_path[i] = save_path
+                #         if isinstance(vid_writer[i], cv2.VideoWriter):
+                #             vid_writer[i].release()  # release previous video writer
+                #         if vid_cap:  # video
+                #             fps = vid_cap.get(cv2.CAP_PROP_FPS)
+                #             w = int(vid_cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+                #             h = int(vid_cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+                #         else:  # stream
+                #             fps, w, h = 30, im0.shape[1], im0.shape[0]
+                #         save_path = str(Path(save_path).with_suffix(".mp4"))  # force *.mp4 suffix on results videos
+                #         vid_writer[i] = cv2.VideoWriter(save_path, cv2.VideoWriter_fourcc(*"mp4v"), fps, (w, h))
+                #     vid_writer[i].write(im0)
+        
+    
         # Print time (inference-only)
         LOGGER.info(f"{s}{'' if len(det) else '(no detections), '}{dt[1].dt * 1E3:.1f}ms")
+    
+    if save_img and len(frames) > 0:
+        height, width, layers = frames[0].shape
+        video_path = str(save_dir / 'result.mp4')
+        video = cv2.VideoWriter(video_path, cv2.VideoWriter_fourcc(*'mp4v'), 30, (width, height))
+        for frame in frames:
+            video.write(frame)
+    video.release()
 
     # Print results
     t = tuple(x.t / seen * 1e3 for x in dt)  # speeds per image
@@ -267,10 +281,10 @@ def run(
 def parse_opt():
     """Parses command-line arguments for YOLOv5 detection, setting inference options and model configurations."""
     parser = argparse.ArgumentParser()
-    parser.add_argument("--weights", nargs="+", type=str, default=ROOT / "yolov5s.pt", help="model path or triton URL")
-    parser.add_argument("--source", type=str, default=ROOT / "data/images", help="file/dir/URL/glob/screen/0(webcam)")
-    parser.add_argument("--data", type=str, default=ROOT / "data/coco128.yaml", help="(optional) dataset.yaml path")
-    parser.add_argument("--imgsz", "--img", "--img-size", nargs="+", type=int, default=[640], help="inference size h,w")
+    parser.add_argument("--weights", nargs="+", type=str, default=ROOT / "./runs/train/yolov5n14/weights/best.pt", help="model path or triton URL")
+    parser.add_argument("--source", type=str, default=ROOT / "/home/sungjin/Codes/AUE8088-PA2/datasets/nuscenes/test/images", help="file/dir/URL/glob/screen/0(webcam)")
+    parser.add_argument("--data", type=str, default=ROOT / "data/nuscenes.yaml", help="(optional) dataset.yaml path")
+    parser.add_argument("--imgsz", "--img", "--img-size", nargs="+", type=int, default=[416], help="inference size h,w")
     parser.add_argument("--conf-thres", type=float, default=0.25, help="confidence threshold")
     parser.add_argument("--iou-thres", type=float, default=0.45, help="NMS IoU threshold")
     parser.add_argument("--max-det", type=int, default=1000, help="maximum detections per image")
@@ -289,7 +303,7 @@ def parse_opt():
     parser.add_argument("--project", default=ROOT / "runs/detect", help="save results to project/name")
     parser.add_argument("--name", default="exp", help="save results to project/name")
     parser.add_argument("--exist-ok", action="store_true", help="existing project/name ok, do not increment")
-    parser.add_argument("--line-thickness", default=3, type=int, help="bounding box thickness (pixels)")
+    parser.add_argument("--line-thickness", default=1, type=int, help="bounding box thickness (pixels)")
     parser.add_argument("--hide-labels", default=False, action="store_true", help="hide labels")
     parser.add_argument("--hide-conf", default=False, action="store_true", help="hide confidences")
     parser.add_argument("--half", action="store_true", help="use FP16 half-precision inference")
