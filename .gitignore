@@ -31,6 +31,10 @@ runs/*
 data/*
 data/images/*
 !data/*.yaml
+
+# Add kaist data yaml for k-fold
+data/kaist-rgbt.yaml
+
 !data/hyps
 !data/scripts
 !data/images

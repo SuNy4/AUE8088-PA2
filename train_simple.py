@@ -454,6 +454,9 @@ def parse_opt(known=False):
     parser.add_argument("--local_rank", type=int, default=-1, help="Automatic DDP Multi-GPU argument, do not modify")
     parser.add_argument("--rgbt", action="store_true", help="Feed RGB-T multispectral image pair.")
 
+    # K-fold arguments
+    parser.add_argument("--fold", default=1, help="Set K-fold cross val, enter K")
+
     # Logger arguments
     parser.add_argument("--entity", default=None, help="Entity")
     parser.add_argument("--upload_dataset", nargs="?", const=True, default=False, help='Upload data, "val" option')
@@ -483,8 +486,19 @@ def main(opt, callbacks=Callbacks()):
 
     # Train
     device = select_device(opt.device, batch_size=opt.batch_size)
-    train(opt.hyp, opt, device, callbacks)
+    
+    for fold in range(1, opt.fold+1):
 
+        with open(opt.data, "r") as file:
+            data_config = yaml.safe_load(file)
+        data_config["train"] = f"train_all_04_{fold}.txt"
+        data_config["val"] = f"val_all_04_{fold}.txt"
+
+        with open(opt.data, "w") as file:
+            yaml.safe_dump(data_config, file)
+
+        train(opt.hyp, opt, device, callbacks)
+        fold += 1
 
 if __name__ == "__main__":
     opt = parse_opt()
