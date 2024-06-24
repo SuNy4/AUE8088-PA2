@@ -151,6 +151,7 @@ def run(
     callbacks=Callbacks(),
     compute_loss=None,
     epoch=None,
+    fold=1,
 ):
     # Initialize/load model and set device
     training = model is not None
@@ -361,9 +362,9 @@ def run(
         # Run evaluation: KAIST Multispectral Pedestrian Dataset
         try:
             # HACK: need to generate KAIST_annotation.json for your own validation set
-            if not os.path.exists('utils/eval/KAIST_annotation.json'):
+            if not os.path.exists(f'utils/eval/KAIST_annotation_{fold}.json'):
                 raise FileNotFoundError('Please generate KAIST_annotation.json for your own validation set.')
-            os.system(f"python3 utils/eval/kaisteval.py --annFile utils/eval/KAIST_annotation.json --rstFile {pred_json}")
+            os.system(f"python3 utils/eval/kaisteval.py --annFile utils/eval/KAIST_annotation_{fold}.json --rstFile {pred_json}")
         except Exception as e:
             LOGGER.info(f"kaisteval unable to run: {e}")
 

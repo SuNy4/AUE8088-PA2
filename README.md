@@ -102,7 +102,8 @@
     --workers 16 \
     --name yolov5n-rgbt \
     --rgbt \
-    --single-cls
+    --single-cls \
+    --fold 5
   ```
 
 ### Evaluation (eval.ai server)
