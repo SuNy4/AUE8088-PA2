@@ -19,6 +19,7 @@ import time
 import torch
 import torch.nn as nn
 import yaml
+import wandb
 
 from copy import deepcopy
 from datetime import datetime
@@ -76,7 +77,7 @@ from utils.torch_utils import (
 
 GIT_INFO = check_git_info()
 
-def train(hyp, opt, device, callbacks):
+def train(hyp, opt, device, callbacks, fold):
     """
     Trains YOLOv5 model with given hyperparameters, options, and device, managing datasets, model architecture, loss
     computation, and optimizer steps.
@@ -341,6 +342,7 @@ def train(hyp, opt, device, callbacks):
                 callbacks=callbacks,
                 compute_loss=compute_loss,
                 epoch=epoch,
+                fold=fold,
             )
 
         # Update best mAP
@@ -455,7 +457,7 @@ def parse_opt(known=False):
     parser.add_argument("--rgbt", action="store_true", help="Feed RGB-T multispectral image pair.")
 
     # K-fold arguments
-    parser.add_argument("--fold", default=1, help="Set K-fold cross val, enter K")
+    parser.add_argument("--fold", type=int, default=1, help="Set K-fold cross val, enter K")
 
     # Logger arguments
     parser.add_argument("--entity", default=None, help="Entity")
@@ -497,8 +499,7 @@ def main(opt, callbacks=Callbacks()):
         with open(opt.data, "w") as file:
             yaml.safe_dump(data_config, file)
 
-        train(opt.hyp, opt, device, callbacks)
-        fold += 1
+        train(opt.hyp, opt, device, callbacks, fold)
 
 if __name__ == "__main__":
     opt = parse_opt()
