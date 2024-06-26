@@ -311,7 +311,7 @@ def mixup(im, labels, im2, labels2):
     r = np.random.beta(32.0, 32.0)  # mixup ratio, alpha=beta=32.0
     assert len(im) == len(im2), "Mixup failed: # of Image elements are different!"
     for i in range(len(im)):
-        im = (im * r + im2 * (1 - r)).astype(np.uint8)
+        im[i] = (im[i] * r + im2[i] * (1 - r)).astype(np.uint8)
     labels = np.concatenate((labels, labels2), 0)
     return im, labels
 
