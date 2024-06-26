@@ -186,7 +186,7 @@ def train(hyp, opt, device, callbacks, fold):
         gs,
         single_cls,
         hyp=hyp,
-        augment=False,      # TODO: make it work
+        augment=opt.aug,      # TODO: make it work
         cache=None if opt.cache == "val" else opt.cache,
         rect=opt.rect,
         rank=-1,
@@ -402,6 +402,7 @@ def train(hyp, opt, device, callbacks, fold):
                     plots=False,
                     callbacks=callbacks,
                     compute_loss=compute_loss,
+                    fold=fold
                 )  # val best model with plots
                 if is_coco:
                     callbacks.run("on_fit_epoch_end", list(mloss) + list(results) + lr, epoch, best_fitness, fi)
@@ -454,9 +455,13 @@ def parse_opt(known=False):
     parser.add_argument("--seed", type=int, default=0, help="Global training seed")
     parser.add_argument("--local_rank", type=int, default=-1, help="Automatic DDP Multi-GPU argument, do not modify")
     parser.add_argument("--rgbt", action="store_true", help="Feed RGB-T multispectral image pair.")
+    parser.add_argument("--aug", action="store_true", help="Validation for test")
 
     # K-fold arguments
     parser.add_argument("--fold", type=int, default=1, help="Set K-fold cross val, enter K")
+
+    #Test
+    parser.add_argument("--test", action="store_true", help="Validation for test")
 
     # Logger arguments
     parser.add_argument("--entity", default=None, help="Entity")
@@ -467,7 +472,7 @@ def parse_opt(known=False):
     return parser.parse_known_args()[0] if known else parser.parse_args()
 
 
-def main(opt, callbacks=Callbacks()):
+def main(opt, fold, callbacks=Callbacks()):
     """Runs training or hyperparameter evolution with specified options and optional callbacks."""
     print_args(vars(opt))
     check_git_status(repo="SuNy4/aue8088-pa2", branch="project")
@@ -488,18 +493,19 @@ def main(opt, callbacks=Callbacks()):
     # Train
     device = select_device(opt.device, batch_size=opt.batch_size)
     
-    for fold in range(1, opt.fold+1):
+    train(opt.hyp, opt, device, callbacks, fold)
 
+if __name__ == "__main__":
+    for fold in range(1, 6):
+        opt = parse_opt()
         with open(opt.data, "r") as file:
             data_config = yaml.safe_load(file)
         data_config["train"] = f"train_all_04_{fold}.txt"
-        data_config["val"] = f"val_all_04_{fold}.txt"
-
+        if not opt.test:
+            data_config["val"] = f"val_all_04_{fold}.txt"
+        else:
+            data_config["val"] = "test-all-20.txt"
         with open(opt.data, "w") as file:
             yaml.safe_dump(data_config, file)
-
-        train(opt.hyp, opt, device, callbacks, fold)
-
-if __name__ == "__main__":
-    opt = parse_opt()
-    main(opt)
+        
+        main(opt, fold=fold)

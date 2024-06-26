@@ -364,7 +364,8 @@ def run(
             # HACK: need to generate KAIST_annotation.json for your own validation set
             if not os.path.exists(f'utils/eval/KAIST_annotation_{fold}.json'):
                 raise FileNotFoundError('Please generate KAIST_annotation.json for your own validation set.')
-            os.system(f"python3 utils/eval/kaisteval.py --annFile utils/eval/KAIST_annotation_{fold}.json --rstFile {pred_json}")
+            fppi_path = str(save_dir / f"KAIST_FPPI_BENCHMARK_f{fold}.jpg")
+            os.system(f"python3 utils/eval/kaisteval.py --annFile ./utils/eval/KAIST_annotation_{fold}.json --rstFile {pred_json} --evalFig {fppi_path}")
         except Exception as e:
             LOGGER.info(f"kaisteval unable to run: {e}")
 
