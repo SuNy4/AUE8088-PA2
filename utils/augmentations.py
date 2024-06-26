@@ -152,18 +152,20 @@ def letterbox(im, new_shape=(640, 640), color=(114, 114, 114), auto=True, scaleF
 
 
 def random_perspective(
-    im, targets=(), segments=(), degrees=10, translate=0.1, scale=0.1, shear=10, perspective=0.0, border=(0, 0)
+    img, targets=(), segments=(), degrees=10, translate=0.1, scale=0.1, shear=10, perspective=0.0, border=(0, 0)
 ):
     # torchvision.transforms.RandomAffine(degrees=(-10, 10), translate=(0.1, 0.1), scale=(0.9, 1.1), shear=(-10, 10))
     # targets = [cls, xyxy]
-
-    height = im.shape[0] + border[0] * 2  # shape(h,w,c)
-    width = im.shape[1] + border[1] * 2
+    
+    assert all(element.shape == img[0].shape for element in img), "Image for each modalities are not equal shape!"
+    ex_image = img[0]
+    height = ex_image.shape[0] + border[0] * 2  # shape(h,w,c)
+    width = ex_image.shape[1] + border[1] * 2
 
     # Center
     C = np.eye(3)
-    C[0, 2] = -im.shape[1] / 2  # x translation (pixels)
-    C[1, 2] = -im.shape[0] / 2  # y translation (pixels)
+    C[0, 2] = -ex_image.shape[1] / 2  # x translation (pixels)
+    C[1, 2] = -ex_image.shape[0] / 2  # y translation (pixels)
 
     # Perspective
     P = np.eye(3)
@@ -188,13 +190,15 @@ def random_perspective(
     T[0, 2] = random.uniform(0.5 - translate, 0.5 + translate) * width  # x translation (pixels)
     T[1, 2] = random.uniform(0.5 - translate, 0.5 + translate) * height  # y translation (pixels)
 
-    # Combined rotation matrix
-    M = T @ S @ R @ P @ C  # order of operations (right to left) is IMPORTANT
-    if (border[0] != 0) or (border[1] != 0) or (M != np.eye(3)).any():  # image changed
-        if perspective:
-            im = cv2.warpPerspective(im, M, dsize=(width, height), borderValue=(114, 114, 114))
-        else:  # affine
-            im = cv2.warpAffine(im, M[:2], dsize=(width, height), borderValue=(114, 114, 114))
+    for i in range(len(img)):
+        im = img[i]
+        # Combined rotation matrix
+        M = T @ S @ R @ P @ C  # order of operations (right to left) is IMPORTANT
+        if (border[0] != 0) or (border[1] != 0) or (M != np.eye(3)).any():  # image changed
+            if perspective:
+                img[i] = cv2.warpPerspective(im, M, dsize=(width, height), borderValue=(114, 114, 114))
+            else:  # affine
+                img[i] = cv2.warpAffine(im, M[:2], dsize=(width, height), borderValue=(114, 114, 114))
 
     # Visualize
     # import matplotlib.pyplot as plt
@@ -238,7 +242,7 @@ def random_perspective(
         targets = targets[i]
         targets[:, 1:5] = new[i]
 
-    return im, targets
+    return img, targets
 
 
 def copy_paste(im, labels, segments, p=0.5):
@@ -305,7 +309,9 @@ def mixup(im, labels, im2, labels2):
     See https://arxiv.org/pdf/1710.09412.pdf for details.
     """
     r = np.random.beta(32.0, 32.0)  # mixup ratio, alpha=beta=32.0
-    im = (im * r + im2 * (1 - r)).astype(np.uint8)
+    assert len(im) == len(im2), "Mixup failed: # of Image elements are different!"
+    for i in range(len(im)):
+        im = (im * r + im2 * (1 - r)).astype(np.uint8)
     labels = np.concatenate((labels, labels2), 0)
     return im, labels
 
